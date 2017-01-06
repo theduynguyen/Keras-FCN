@@ -76,8 +76,8 @@ N_train_img = args.n_train_img
 N_val_img = args.n_val_img
 N_epochs = args.epochs
 
-labels = pd.read_csv(args.img_dir + 'labels.txt')
-n_classes = 6
+df = pd.read_csv(args.img_dir + 'labels.txt')
+n_classes = df.count
 	
 # create model
 gpu = '/gpu:' + str(args.gpu)
