@@ -96,3 +96,73 @@ def seg_data_generator(stride,n_classes,img_dir,label_dir,img_list,preprocess = 
 				y = y[np.newaxis,...] # make it a 4D tensor
 
 				yield x, y
+
+import scipy.io as sio
+import skimage.draw
+
+def pose_data_generator(stride,n_joints,img_dir,label_file,img_list,preprocess = True):
+	while 1:
+		# load joint annotation file
+		annot_struct = sio.loadmat(label_file)
+		annot = annot_struct['joints'] # order (dim,joint_id,image_no)
+		
+		resize_factor = 4
+		annot *= resize_factor
+
+		for img_id in img_list:
+
+			# load image
+			img_path = img_dir + 'im' + format(img_id, '04') + '.jpg'
+			x = skimage.io.imread(img_path)
+			x = skimage.transform.resize(x,
+										(x.shape[0]*resize_factor,x.shape[1]*resize_factor))
+
+			# load label
+			joint_coords = annot[:,:,img_id-1]
+			
+			#only yield is the images exist
+			is_img = type(x) is np.ndarray
+			not_empty = len(x.shape) > 0
+
+			if  is_img and not_empty:
+				#deal with gray value images
+				if len(x.shape) == 2:
+					x = skimage.color.gray2rgb(x)
+
+				# crop if image dims do not match stride
+				w_rest = x.shape[0] % stride
+				h_rest = x.shape[1] % stride
+				
+				if w_rest > 0:
+					w_crop_1 = np.round(w_rest / 2)
+					w_crop_2 = w_rest - w_crop_1
+					
+					x = x[w_crop_1:-w_crop_2,:,:]
+				if h_rest > 0:
+					h_crop_1 = np.round(h_rest / 2)
+					h_crop_2 = h_rest - h_crop_1
+
+					x = x[:,h_crop_1:-h_crop_2,:]
+
+				# create label volume
+				y = np.zeros((x.shape[0],x.shape[1],n_joints),dtype='uint8')
+				radius = 0.05*x.shape[0]	
+
+				for j in range(n_joints):
+					xmin = max( int(joint_coords[0,j] - radius), 0 )
+					xmax = min( int(joint_coords[0,j] + radius), x.shape[1] )
+					ymin = max( int(joint_coords[1,j] - radius), 0 )
+					ymax = min( int(joint_coords[1,j] + radius), x.shape[0] )
+
+					y[ymin:ymax,xmin:xmax,j] = 1.0
+
+				# prepare for NN
+				x = np.array(x,dtype='float')
+				x = x[np.newaxis,...]
+
+				if preprocess == True:
+					x = preprocess_input(x)
+
+				y = y[np.newaxis,...] # make it a 4D tensor
+
+				yield x, y

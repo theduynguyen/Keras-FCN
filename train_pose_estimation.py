@@ -10,18 +10,17 @@ from keras.callbacks import ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from keras.optimizers import Adam, SGD
 
 from model_fcn import resnet50_fcn, testnet_fcn, resnet50_16s_fcn, resnet50_8s_fcn
-from data_generator import seg_data_generator, pad_image
-from loss_func import fcn_xent, fcn_xent_nobg, pixel_acc, mean_acc
+from data_generator import pose_data_generator, pad_image
 import utils
 
 def parse_args():
 	parser = argparse.ArgumentParser()
 
 	parser.add_argument('-t', '--n_train_img', help='Number of train images', 
-						type=int,default=3000)
+						type=int,default=1000)
 
 	parser.add_argument('-v', '--n_val_img', help='Number of validation images', 
-						type=int,default=1000)
+						type=int,default=100)
 
 	parser.add_argument('-n', '--net', help='Net to train (testnet, resnet50 or resnet50_16s)', 
 						default='resnet50')
@@ -36,7 +35,7 @@ def parse_args():
 						default='SGD')
 
 	parser.add_argument('-d', '--img_dir', help='Directory containing the images', 
-						default='/home/tdnguyen/data/COCO/Segmentation/')
+						default='/home/tdnguyen/data/lsp_dataset/images/')
 
 	parser.add_argument('-lr', '--learning_rate', help='Initial learning rate', 
 						default=0.01)
@@ -75,40 +74,31 @@ if not os.path.exists(model_output_dir):
 N_train_img = args.n_train_img
 N_val_img = args.n_val_img
 N_epochs = args.epochs
-
-df = pd.read_csv(args.img_dir + 'labels.txt')
-n_classes = df.count
+n_joints = 14
 	
 # create model
 gpu = '/gpu:' + str(args.gpu)
 with tf.device(gpu):
 	# create model
 	if args.net == 'resnet50' :
-		model, stride = resnet50_fcn(n_classes)
+		model, stride = resnet50_fcn(n_joints)
 
 	if args.net == 'resnet50_16s' :
-		model, stride = resnet50_16s_fcn(n_classes,args.model_input)
+		model, stride = resnet50_16s_fcn(n_joints,args.model_input)
 
 	if args.net == 'resnet50_8s' :
-		model, stride = resnet50_8s_fcn(n_classes,args.model_input)
+		model, stride = resnet50_8s_fcn(n_joints,args.model_input)
 
 	if args.net == 'testnet' :
-		model, stride = testnet_fcn(n_classes)
+		model, stride = testnet_fcn(n_joints)
 
 # create data generators
-train_img_dir = args.img_dir + 'train_images/'
-train_label_dir = args.img_dir + 'train_labels/'
-val_img_dir = args.img_dir + 'val_images/'
-val_label_dir = args.img_dir + 'val_labels/'
+img_dir = '/home/tdnguyen/data/lsp_dataset/images/'
+label_file = '/home/tdnguyen/data/lsp_dataset/joints.mat'
+img_list = range(1,2000)
 
-img_list_train = os.listdir(train_img_dir)
-img_list_train = img_list_train[:N_train_img]
-random.shuffle(img_list_train)
-img_list_val = os.listdir(val_img_dir)
-img_list_val = img_list_val[:N_val_img]
-
-train_gen = seg_data_generator(stride,n_classes,train_img_dir,train_label_dir,img_list_train)
-val_gen = seg_data_generator(stride,n_classes,val_img_dir,val_label_dir,img_list_val)
+train_gen = pose_data_generator(stride,n_joints,img_dir,label_file,img_list[:N_train_img])
+val_gen = pose_data_generator(stride,n_joints,img_dir,label_file,img_list[N_train_img:N_train_img+N_val_img])
 
 # callbacks
 filepath = model_output_dir + '/best_weights.hdf5'
@@ -127,14 +117,12 @@ if args.opt == 'Adam':
 	opt = Adam(lr=learning_rate)
 elif args.opt == 'SGD':
 	opt = SGD(lr=learning_rate, momentum=0.9)
-elif args.opt == 'SGD_Aggr':
-	opt = SGD(lr=learning_rate, momentum=0.99)
 
-model.compile(optimizer = opt,loss = fcn_xent_nobg, metrics=[mean_acc])
+model.compile(optimizer = opt,loss = 'mse')
 
 print model.summary()
 
 model.fit_generator(train_gen,
-					samples_per_epoch=N_train_img,nb_epoch=N_epochs,
-					validation_data = val_gen,nb_val_samples = N_val_img,
+					samples_per_epoch=N_train_img, nb_epoch=N_epochs,
+					validation_data = val_gen, nb_val_samples = N_val_img,
 					callbacks=callbacks_list,verbose=1)
