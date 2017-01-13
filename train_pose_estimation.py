@@ -35,7 +35,7 @@ def parse_args():
 						default='SGD')
 
 	parser.add_argument('-d', '--img_dir', help='Directory containing the images', 
-						default='/home/tdnguyen/data/lsp_dataset/images/')
+						default='/data/lsp_dataset/images/')
 
 	parser.add_argument('-lr', '--learning_rate', help='Initial learning rate', 
 						default=0.01)
@@ -44,7 +44,7 @@ def parse_args():
 					default='')
 
 	parser.add_argument('-mo', '--model_output', help='Where to save the trained model?', 
-					default='/home/tdnguyen/work/FCN_models/')
+					default='/work/fcn_models/')
 
 	parser.add_argument('-id', '--exp_id', help='Experiment id', 
 					default='')
@@ -93,8 +93,8 @@ with tf.device(gpu):
 		model, stride = testnet_fcn(n_joints)
 
 # create data generators
-img_dir = '/home/tdnguyen/data/lsp_dataset/images/'
-label_file = '/home/tdnguyen/data/lsp_dataset/joints.mat'
+img_dir = '/data/lsp_dataset/images/'
+label_file = '/data/lsp_dataset/joints.mat'
 img_list = range(1,2000)
 
 train_gen = pose_data_generator(stride,n_joints,img_dir,label_file,img_list[:N_train_img])

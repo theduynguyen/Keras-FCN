@@ -4,6 +4,7 @@ import os
 import argparse
 
 import pandas as pd
+
 import tensorflow as tf
 import keras.backend as K
 from keras.callbacks import ModelCheckpoint, TensorBoard, ReduceLROnPlateau
@@ -36,7 +37,7 @@ def parse_args():
 						default='SGD')
 
 	parser.add_argument('-d', '--img_dir', help='Directory containing the images', 
-						default='/home/tdnguyen/data/COCO/Segmentation/')
+						default='/data/COCO/Segmentation/')
 
 	parser.add_argument('-lr', '--learning_rate', help='Initial learning rate', 
 						default=0.01)
@@ -45,10 +46,9 @@ def parse_args():
 					default='')
 
 	parser.add_argument('-mo', '--model_output', help='Where to save the trained model?', 
-					default='/home/tdnguyen/work/FCN_models/')
+					default='/work/fcn_models/')
 
-	parser.add_argument('-id', '--exp_id', help='Experiment id', 
-					default='')
+	parser.add_argument('-id', '--exp_id', help='Experiment id')
 
 	return parser.parse_args()
 
@@ -57,28 +57,20 @@ def parse_args():
 
 args = parse_args()
 utils.config_tf()
-exp_id_file = args.model_output + 'Exp_ID.csv'
 
 # create experimental directory
-if args.exp_id == '':
-	# use date + number of exps so far today
-	today, exp_id = utils.get_exp_id(exp_id_file)
-	model_output_dir = args.model_output + str(today) + '_' + str(exp_id).zfill(2)
-else :
-	model_output_dir = args.model_output + args.exp_id
-
+model_output_dir = args.model_output + args.exp_id
 if not os.path.exists(model_output_dir):
     os.makedirs(model_output_dir)
-
 
 # set vars
 N_train_img = args.n_train_img
 N_val_img = args.n_val_img
 N_epochs = args.epochs
 
-df = pd.read_csv(args.img_dir + 'labels.txt')
-n_classes = df.count
-	
+df = pd.read_csv(args.img_dir + 'labels.txt',header=None)
+n_classes = len(df.index)
+
 # create model
 gpu = '/gpu:' + str(args.gpu)
 with tf.device(gpu):

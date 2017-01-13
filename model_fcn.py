@@ -40,7 +40,7 @@ def resnet50_fcn(n_classes):
 	# load ResNet
 	input_tensor = Input(shape=(None, None, 3))
 	base_model = ResNet50(weights='imagenet', include_top=False, input_tensor=input_tensor)
-	
+
 	# add classifier
 	x = base_model.get_layer('activation_49').output
 	x = Dropout(0.5)(x)
@@ -212,7 +212,7 @@ def resnet50_8s_fcn(n_classes,model_input = ''):
 	return model, stride
 
 def testnet_fcn(n_classes):
-	stride = 4
+	stride = 32
 	input_tensor = Input(shape=(None, None, 3))
 	x = Convolution2D(4,5,5,name='conv',
 					activation = 'relu', border_mode='same', subsample= (stride,stride))(input_tensor)
