@@ -10,6 +10,7 @@ This repository contains my implementation of [Fully Convolutional Networks](htt
 - Keras
 - Pandas
 - Matplotlib (for result visualisation)
+- Jupyter Notebook (for result visualisation)
 - Scikit Image
 
 ## Usage
