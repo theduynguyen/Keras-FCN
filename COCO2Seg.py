@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import collections
 
-coco_dir = '/home/tdnguyen/data/COCO/coco/'
+coco_dir = '/data/COCO/coco/'
 out_dir = coco_dir + 'Segmentation/'
 annot_dir = coco_dir + 'annotations/'
 
